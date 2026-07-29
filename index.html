@@ -651,7 +651,8 @@ function ensureGeo(){
 }
 
 /* ---------- Google Maps ---------- */
-const DEFAULT_KEY=''; // 공개 사이트라 키를 파일에 넣지 않음. billing 켜면 앱 ⚙︎설정에서 입력(기기별 저장).
+// 클라이언트 Maps 키는 브라우저에 노출되는 게 정상. 보안은 Google Cloud에서 HTTP 리퍼러 제한(https://s5219071.github.io/*)으로 처리.
+const DEFAULT_KEY='AIzaSyCtgNVQ9xNPBOZ6rxjke-8vo9M62iAfH0c';
 function getKey(){return localStorage.getItem('gmapsKey')||DEFAULT_KEY;}
 let mapsLoaded=false, mapsLoading=false;
 function loadMaps(cb){
