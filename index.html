@@ -71,6 +71,8 @@ header .gear{background:rgba(255,255,255,.18);border:0;color:#fff;width:34px;hei
 .store-ctx .chip{font-size:11.5px;background:#f3f4f6;color:#4b5563;border-radius:999px;padding:4px 9px;font-weight:600;}
 .store-ctx .chip b{color:var(--red);}
 .store-ctx .pre{flex:1 1 100%;background:#fff7ed;color:#9a3412;border:1px solid #fed7aa;font-weight:500;}
+.noinfo-banner{margin-top:10px;background:#fffbeb;border:1px solid #fcd34d;color:#b45309;
+  border-radius:10px;padding:9px 12px;font-size:13px;font-weight:700;text-align:center;}
 
 /* Map */
 .map-block{padding:14px 16px;border-bottom:1px solid var(--line);}
@@ -142,6 +144,8 @@ textarea{min-height:60px;resize:vertical;}
 .btn-prev:disabled{opacity:.4;}
 .btn-next{background:var(--red);color:#fff;}
 .btn-next:active{background:var(--red-d);}
+.navbar .btn-noinfo{flex:0 0 90px;background:#fff;border:1.5px solid #f59e0b;color:#b45309;font-size:14px;padding:13px 6px;}
+.navbar .btn-noinfo.on{background:#f59e0b;color:#fff;border-color:#f59e0b;}
 .saved-dot{color:var(--ok);font-size:12px;text-align:center;padding-bottom:6px;font-weight:600;}
 
 /* Settings modal */
@@ -178,7 +182,14 @@ textarea{min-height:60px;resize:vertical;}
 .hist-item .meta{font-size:11.5px;color:var(--sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px;}
 .hist-item .st{flex:0 0 auto;font-size:11px;font-weight:800;padding:5px 9px;border-radius:999px;white-space:nowrap;}
 .hist-item .st.done{background:var(--red);color:#fff;}
+.hist-item .st.noinfo{background:#f59e0b;color:#fff;}
 .hist-item .st.todo{background:#eef0f3;color:#9ca3af;}
+.hist-item.noinfo .no{background:#f59e0b;color:#fff;}
+.hist-item .del{flex:0 0 auto;background:none;border:0;color:#cbd5e1;font-size:18px;padding:2px 4px;cursor:pointer;}
+.hist-item .del:active{color:#ef4444;}
+.add-toggle{width:100%;background:#f0fdf4;border:1.5px dashed #86efac;color:#16a34a;
+  border-radius:10px;padding:10px;font-weight:700;font-size:14px;cursor:pointer;margin-bottom:6px;}
+#addForm{background:#f9fafb;border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:6px;}
 </style>
 </head>
 <body>
@@ -252,6 +263,7 @@ textarea{min-height:60px;resize:vertical;}
         <p class="store-name" id="storeName">—</p>
         <p class="store-addr" id="storeAddr">—</p>
         <div class="store-ctx" id="storeCtx"></div>
+        <div id="noInfoBanner" class="noinfo-banner" style="display:none;">🚫 정보없음 — 폐업/부재/확인불가</div>
       </div>
 
       <div class="map-block">
@@ -372,6 +384,7 @@ textarea{min-height:60px;resize:vertical;}
   <div class="saved-dot" id="savedDot" style="display:none;">✓ 자동 저장됨</div>
   <div class="navbar">
     <button class="btn-prev" id="prevBtn">‹ 이전</button>
+    <button class="btn-noinfo" id="noInfoBtn">정보없음</button>
     <button class="btn-next" id="nextBtn">다음 ›</button>
   </div>
 </div>
@@ -388,6 +401,15 @@ textarea{min-height:60px;resize:vertical;}
     </div>
     <div class="export-line" style="margin-top:8px;">
       <button id="exportBtn" style="background:#374151;">📤 CSV로 추출</button>
+    </div>
+
+    <label style="margin-top:18px;">💾 내 PC에 자동저장 (DB 연결)</label>
+    <p class="desc" id="fsStatus">연결 안 됨 — PC의 Chrome/Edge에서 폴더를 지정하면 그 폴더의 <b>ecnesoft_sales_data.json</b>에 자동 저장됩니다. (폰은 미지원)</p>
+    <div class="export-line">
+      <button id="fsConnectBtn" style="background:#2563eb;">💾 PC 폴더에 자동저장 연결</button>
+    </div>
+    <div class="export-line" style="margin-top:8px;">
+      <button id="fsRestoreBtn" style="background:#6b7280;">📥 PC 파일에서 복원</button>
     </div>
     <div class="export-line" style="margin-top:16px;">
       <button id="reimportBtn" style="background:var(--red);">🔄 새 엑셀로 다시 Import</button>
@@ -410,6 +432,17 @@ textarea{min-height:60px;resize:vertical;}
   <div class="sheet">
     <h3>📋 방문 목록 · 히스토리</h3>
     <input type="text" class="hist-search" id="histSearch" placeholder="가게명 / 주소 검색">
+    <div id="addStoreBox">
+      <button id="addToggle" class="add-toggle">➕ 가게 추가</button>
+      <div id="addForm" style="display:none;">
+        <input type="text" class="hist-search" id="newStore" placeholder="가게명" style="margin-bottom:6px;">
+        <input type="text" class="hist-search" id="newAddr" placeholder="주소 (예: 12 Rowe St, Eastwood)" style="margin-bottom:6px;">
+        <div style="display:flex;gap:8px;">
+          <button class="btn-ghost" id="addCancel" style="flex:1;padding:10px;border-radius:10px;border:0;font-weight:700;">취소</button>
+          <button class="btn-solid" id="addConfirm" style="flex:1;padding:10px;border-radius:10px;border:0;font-weight:700;">추가</button>
+        </div>
+      </div>
+    </div>
     <p class="hist-summary" id="histSummary"></p>
     <div class="hist-list" id="histList"></div>
     <div class="row">
@@ -459,6 +492,7 @@ function parseRows(rows){
     move: pick(r,['이동','move','동선']),
     day: pick(r,['day','일차','일자']),
     seq: pick(r,['순서','순번','seq','no','번호']),
+    noInfo:false,
     pos:'',posOther:'',order:'',loyalty:'',loyaltyOther:'',size:'',busy:'',sns:'',snsNote:'',receipt:'',memo:''
   })).filter(x=>x.store||x.address);
 }
@@ -510,7 +544,7 @@ $('tplBtn').onclick=downloadTemplate;
 $('tplBtn2').onclick=downloadTemplate;
 
 /* ---------- Persistence ---------- */
-async function saveAll(){ await idbSet('records',records); await idbSet('idx',idx); await idbSet('meta',{players,playerNo}); }
+async function saveAll(){ await idbSet('records',records); await idbSet('idx',idx); await idbSet('meta',{players,playerNo}); scheduleFsSave(); }
 async function loadSaved(){
   const r=await idbGet('records'); const i=await idbGet('idx'); const m=await idbGet('meta');
   if(r&&r.length){ records=r; idx=i||0; if(m){players=m.players||1;playerNo=m.playerNo||1;} $('resumeBox').style.display='block'; }
@@ -534,6 +568,9 @@ function startCards(){
 function isFilled(r){
   return !!(r.pos||r.order||r.loyalty||r.size||r.busy||r.sns||r.receipt||r.memo||r.posOther||r.loyaltyOther||r.snsNote);
 }
+/* 3-state: 정보없음(noinfo) / 완료(done) / 미입력(todo) */
+function statusOf(r){ if(r.noInfo) return 'noinfo'; return isFilled(r)?'done':'todo'; }
+function processed(r){ return statusOf(r)!=='todo'; }
 function render(){
   const r=records[idx];
   $('counter').textContent=(players>1?(playerNo+'/'+players+'조·'):'')+(idx+1)+' / '+records.length;
@@ -558,6 +595,11 @@ function render(){
   // nav
   $('prevBtn').disabled = idx===0;
   $('nextBtn').textContent = idx===records.length-1 ? '완료 ✓' : '다음 ›';
+
+  // 정보없음 상태 반영
+  const ni=!!records[idx].noInfo;
+  $('noInfoBtn').classList.toggle('on',ni);
+  $('noInfoBanner').style.display=ni?'block':'none';
 
   updateMap();
   window.scrollTo(0,0);
@@ -636,6 +678,12 @@ $('nextBtn').onclick=()=>{
   else{ if(confirm('마지막 방문입니다. 결과를 엑셀 리포트로 추출할까요?')) exportXLSX(); }
 };
 $('prevBtn').onclick=()=>{ if(idx>0){ idx--; saveAll(); render(); } };
+$('noInfoBtn').onclick=()=>{
+  const r=records[idx]; r.noInfo=!r.noInfo;
+  $('noInfoBtn').classList.toggle('on',r.noInfo);
+  $('noInfoBanner').style.display=r.noInfo?'block':'none';
+  flashSaved(); saveAll();
+};
 let savedTimer;
 function flashSaved(){
   const d=$('savedDot'); d.style.display='block';
@@ -804,25 +852,31 @@ function splitFor(total,N,player){
 /* ---------- Daily settlement + email report ---------- */
 function todayStr(){return new Date().toISOString().slice(0,10);}
 $('settleBtn').onclick=settle;
-async function settle(){
-  const done=records.filter(isFilled).length, miss=records.length-done;
-  if(!confirm('오늘 방문을 총결산할까요?\n\n✅ 완료 '+done+'곳\n▫️ 미입력 '+miss+'곳\n합계 '+records.length+'곳\n\n총결산하면 오늘 데이터가 저장되고,\ninho.kim@posnet.com.au 로 보낼 이메일이 열립니다.')) return;
-  await saveDaySnapshot(done,miss);
-  exportXLSX();  // 첨부용 엑셀 파일 다운로드
-  setTimeout(()=>openReportEmail(done,miss),900);  // 다운로드와 충돌 방지
+function counts(){
+  let done=0,noinfo=0,todo=0;
+  records.forEach(r=>{const s=statusOf(r); if(s==='done')done++; else if(s==='noinfo')noinfo++; else todo++;});
+  return {done,noinfo,todo};
 }
-async function saveDaySnapshot(done,miss){
+async function settle(){
+  const c=counts();
+  if(!confirm('오늘 방문을 총결산할까요?\n\n✅ 완료 '+c.done+'곳\n🚫 정보없음 '+c.noinfo+'곳\n▫️ 미입력 '+c.todo+'곳\n합계 '+records.length+'곳\n\n총결산하면 오늘 데이터가 저장되고,\ninho.kim@posnet.com.au 로 보낼 이메일이 열립니다.')) return;
+  await saveDaySnapshot(c);
+  exportXLSX();  // 첨부용 엑셀 파일 다운로드
+  setTimeout(()=>openReportEmail(c),900);  // 다운로드와 충돌 방지
+}
+async function saveDaySnapshot(c){
   const days=(await idbGet('days'))||{};
-  days[todayStr()]={records:JSON.parse(JSON.stringify(records)),players,playerNo,done,total:records.length,savedAt:new Date().toISOString()};
+  days[todayStr()]={records:JSON.parse(JSON.stringify(records)),players,playerNo,done:c.done,noinfo:c.noinfo,total:records.length,savedAt:new Date().toISOString()};
   await idbSet('days',days);
   $('loadBox').style.display='block';
+  autoSaveToPC();
 }
-function openReportEmail(done,miss){
+function openReportEmail(c){
   const date=todayStr();
   const who=players>1?(players+'명 중 '+playerNo+'번'):'개인 기록';
-  let body='[ECNESOFT 영업 방문 총결산]\n날짜: '+date+'\n담당: '+who+' ('+records.length+'곳)\n완료: '+done+' / 미입력: '+miss+'\n\n■ 방문 결과\n';
+  let body='[ECNESOFT 영업 방문 총결산]\n날짜: '+date+'\n담당: '+who+' ('+records.length+'곳)\n완료: '+c.done+' / 정보없음: '+c.noinfo+' / 미입력: '+c.todo+'\n\n■ 방문 결과\n';
   records.forEach((r,i)=>{
-    const st=isFilled(r)?'[완료]':'[미입력]';
+    const s=statusOf(r), st=(s==='done'?'[완료]':(s==='noinfo'?'[정보없음]':'[미입력]'));
     const posv=r.pos==='기타'?('기타:'+r.posOther):r.pos;
     const parts=[posv&&('POS:'+posv),r.size&&(r.size+'규모'),r.busy,r.memo].filter(Boolean).join(' · ');
     body+=(i+1)+'. '+st+' '+(r.store||'')+(parts?(' — '+parts):'')+'\n';
@@ -854,25 +908,52 @@ $('histSearch').addEventListener('input',renderHist);
 $('histExport').onclick=exportXLSX;
 function renderHist(){
   const q=$('histSearch').value.trim().toLowerCase();
-  const done=records.filter(isFilled).length;
-  $('histSummary').textContent='총 '+records.length+'곳 · 입력완료 '+done+' · 남음 '+(records.length-done);
+  let done=0,noinfo=0,todo=0;
+  records.forEach(r=>{const s=statusOf(r); if(s==='done')done++; else if(s==='noinfo')noinfo++; else todo++;});
+  $('histSummary').innerHTML='총 '+records.length+'곳 · <b style="color:#ED1C24">완료 '+done+'</b> · <b style="color:#f59e0b">정보없음 '+noinfo+'</b> · 미입력 '+todo;
   const list=$('histList'); list.innerHTML='';
   records.forEach((r,i)=>{
     if(q && !((r.store||'').toLowerCase().includes(q) || (r.address||'').toLowerCase().includes(q))) return;
-    const filled=isFilled(r);
-    const el=document.createElement('button');
-    el.className='hist-item'+(filled?' done':'')+(i===idx?' cur':'');
+    const s=statusOf(r);
+    const el=document.createElement('div');
+    el.className='hist-item'+(s==='done'?' done':'')+(s==='noinfo'?' noinfo':'')+(i===idx?' cur':'');
     const bits=[r.pos&&('POS:'+r.pos),r.size&&(r.size+'규모'),r.busy].filter(Boolean).join(' · ');
-    const meta=filled?bits:(r.address||'—');
+    const meta=(s==='done')?bits:(s==='noinfo'?'정보없음 처리됨':(r.address||'—'));
+    const label=(s==='done')?'완료':(s==='noinfo'?'정보없음':'미입력');
     el.innerHTML='<span class="no">'+(i+1)+'</span>'
       +'<span class="body"><span class="nm">'+esc(r.store||'(가게명 없음)')+'</span>'
       +'<span class="meta">'+esc(meta)+'</span></span>'
-      +'<span class="st '+(filled?'done':'todo')+'">'+(filled?'완료':'미입력')+'</span>';
-    el.onclick=()=>{ idx=i; saveAll(); render(); $('histModal').classList.remove('show'); };
+      +'<span class="st '+s+'">'+label+'</span>'
+      +'<button class="del" title="삭제">✕</button>';
+    const jump=()=>{ idx=i; saveAll(); render(); $('histModal').classList.remove('show'); };
+    el.querySelector('.body').onclick=jump;
+    el.querySelector('.no').onclick=jump;
+    el.querySelector('.del').onclick=ev=>{ ev.stopPropagation(); removeStore(i); };
     list.appendChild(el);
   });
   if(!list.children.length) list.innerHTML='<p style="color:#9ca3af;text-align:center;padding:20px;font-size:13px;">검색 결과 없음</p>';
 }
+/* 가게 삭제 */
+function removeStore(i){
+  const r=records[i];
+  if(!confirm('"'+(r.store||'이 가게')+'" 를 목록에서 삭제할까요?')) return;
+  records.splice(i,1);
+  if(records.length===0){ saveAll(); alert('목록이 비었습니다. 처음 화면으로 돌아갑니다.'); location.reload(); return; }
+  if(i<idx) idx--; else if(idx>=records.length) idx=records.length-1;
+  saveAll(); renderHist(); render();
+}
+/* 가게 추가 */
+function addStore(){
+  const nm=$('newStore').value.trim(), ad=$('newAddr').value.trim();
+  if(!nm && !ad){ alert('가게명 또는 주소를 입력하세요.'); return; }
+  records.push({store:nm,address:ad,biz:'',hours:'',precheck:'',move:'',day:'',seq:'',noInfo:false,
+    pos:'',posOther:'',order:'',loyalty:'',loyaltyOther:'',size:'',busy:'',sns:'',snsNote:'',receipt:'',memo:''});
+  $('newStore').value=''; $('newAddr').value=''; $('addForm').style.display='none';
+  saveAll(); renderHist(); render();
+}
+$('addToggle').onclick=()=>{ const f=$('addForm'); f.style.display=(f.style.display==='none'?'block':'none'); };
+$('addCancel').onclick=()=>{ $('addForm').style.display='none'; $('newStore').value=''; $('newAddr').value=''; };
+$('addConfirm').onclick=addStore;
 function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML;}
 
 /* ---------- Excel (.xlsx) report export ---------- */
@@ -890,7 +971,7 @@ function exportXLSX(){
     'SNS':r.sns==='있음'?('있음: '+(r.snsNote||'')):r.sns,
     '영수증':r.receipt?'첨부됨':'',
     '메모':r.memo,
-    '입력상태':isFilled(r)?'완료':'미입력'
+    '입력상태':(statusOf(r)==='done'?'완료':(statusOf(r)==='noinfo'?'정보없음':'미입력'))
   }));
   const ws=XLSX.utils.json_to_sheet(rows);
   ws['!cols']=[{wch:6},{wch:20},{wch:34},{wch:16},{wch:16},{wch:18},{wch:8},{wch:9},{wch:20},{wch:9},{wch:30},{wch:9}];
@@ -918,8 +999,67 @@ function exportXLSX(){
   }
 })();
 
+/* ---------- PC 자동저장 (File System Access API, 데스크톱 Chrome/Edge) ---------- */
+let fsDir=null, fsTimer=null;
+const FS_SUPPORTED = ('showDirectoryPicker' in window);
+$('fsConnectBtn').onclick=connectPC;
+$('fsRestoreBtn').onclick=restoreFromPC;
+async function connectPC(){
+  if(!FS_SUPPORTED){ alert('이 기능은 PC의 Chrome 또는 Edge 브라우저에서만 됩니다.\n\n폰에서는 데이터가 브라우저에 자동 저장되며, 총결산 시 이메일·엑셀로 PC에 옮기시면 됩니다.'); return; }
+  try{
+    const dir=await window.showDirectoryPicker({mode:'readwrite'});
+    fsDir=dir; await idbSet('fsdir',dir);
+    await autoSaveToPC(true);
+    updateFsStatus();
+  }catch(e){ /* 사용자가 취소 */ }
+}
+async function ensurePerm(dir){
+  if(!dir) return false;
+  const opts={mode:'readwrite'};
+  if((await dir.queryPermission(opts))==='granted') return true;
+  if((await dir.requestPermission(opts))==='granted') return true;
+  return false;
+}
+async function autoSaveToPC(showMsg){
+  if(!fsDir){ if(showMsg) return; else return; }
+  try{
+    if(!(await ensurePerm(fsDir))) return;
+    const days=(await idbGet('days'))||{};
+    const dump={app:'ECNESOFT 영업 방문툴',savedAt:new Date().toISOString(),players,playerNo,idx,records,days};
+    const fh=await fsDir.getFileHandle('ecnesoft_sales_data.json',{create:true});
+    const w=await fh.createWritable(); await w.write(JSON.stringify(dump,null,1)); await w.close();
+    if(showMsg) alert('✅ PC에 연결되었습니다.\n이제 데이터가 선택한 폴더의 ecnesoft_sales_data.json 에 자동 저장됩니다.');
+  }catch(e){ if(showMsg) alert('저장 실패: '+e.message); }
+}
+function scheduleFsSave(){ if(!fsDir) return; clearTimeout(fsTimer); fsTimer=setTimeout(()=>autoSaveToPC(false),1000); }
+async function restoreFromPC(){
+  if(!FS_SUPPORTED){ alert('PC의 Chrome/Edge에서만 됩니다.'); return; }
+  try{
+    const [fh]=await window.showOpenFilePicker({types:[{description:'JSON',accept:{'application/json':['.json']}}]});
+    const file=await fh.getFile(); const data=JSON.parse(await file.text());
+    if(!data.records||!Array.isArray(data.records)){ alert('올바른 데이터 파일이 아닙니다.'); return; }
+    if(!confirm('현재 데이터를 이 파일 내용으로 교체할까요?\n('+data.records.length+'곳, 저장시각 '+(data.savedAt||'?')+')')) return;
+    records=data.records; idx=data.idx||0; players=data.players||1; playerNo=data.playerNo||1;
+    if(data.days) await idbSet('days',data.days);
+    $('settingsModal').classList.remove('show');
+    saveAll(); startCards();
+  }catch(e){ /* 취소 */ }
+}
+function updateFsStatus(){
+  const el=$('fsStatus');
+  if(!FS_SUPPORTED){ el.innerHTML='이 브라우저는 미지원 — PC의 Chrome/Edge를 사용하세요. (폰은 브라우저에 자동 저장)'; $('fsConnectBtn').style.opacity='.5'; return; }
+  el.innerHTML=fsDir?('<b style="color:#16a34a">✅ 연결됨</b> — 변경 시 ecnesoft_sales_data.json 에 자동 저장됩니다.'):'연결 안 됨 — 아래 버튼으로 PC 폴더를 지정하세요.';
+}
+async function initFs(){
+  if(!FS_SUPPORTED){ updateFsStatus(); return; }
+  const d=await idbGet('fsdir');
+  if(d){ fsDir=d; } // 권한은 다음 저장/연결 시 재요청될 수 있음
+  updateFsStatus();
+}
+
 /* ---------- Boot ---------- */
 loadSaved();
+initFs();
 </script>
 </body>
 </html>
