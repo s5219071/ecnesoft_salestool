@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>ECNESOFT 영업 방문툴</title>
+<!-- PWA (앱처럼 홈화면 설치) -->
+<meta name="theme-color" content="#ED1C24">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="영업방문">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Crect width='180' height='180' rx='40' fill='%23ED1C24'/%3E%3Ctext x='90' y='120' font-size='96' font-family='Arial' font-weight='bold' fill='white' text-anchor='middle'%3EE%3C/text%3E%3C/svg%3E">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --red:#ED1C24; --red-d:#c41219;
+  --bg:#f4f5f7; --card:#ffffff; --ink:#1a1c1f; --sub:#6b7280;
+  --line:#e5e7eb; --ok:#16a34a; --ghost:#9ca3af;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{margin:0;padding:0;}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  background:var(--bg); color:var(--ink);
+  font-size:16px; line-height:1.4;
+  padding-bottom:88px;
+}
+.wrap{max-width:560px;margin:0 auto;padding:0 14px;}
+
+/* Header */
+header{
+  position:sticky;top:0;z-index:20;
+  background:var(--red); color:#fff;
+  padding:10px 14px; display:flex; align-items:center; gap:10px;
+  box-shadow:0 2px 8px rgba(0,0,0,.12);
+}
+header .logo{font-weight:800;letter-spacing:.5px;font-size:15px;}
+header .count{margin-left:auto;font-size:13px;opacity:.95;font-weight:600;}
+header .gear{background:rgba(255,255,255,.18);border:0;color:#fff;width:34px;height:34px;border-radius:9px;font-size:16px;}
+
+/* Import screen */
+.import-box{
+  background:var(--card);border-radius:16px;padding:28px 20px;margin-top:22px;
+  text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.06);
+}
+.import-box h2{margin:0 0 6px;font-size:19px;}
+.import-box p{margin:0 0 18px;color:var(--sub);font-size:14px;}
+.import-btn{
+  display:inline-block;background:var(--red);color:#fff;border:0;
+  padding:14px 26px;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;
+}
+.import-btn:active{background:var(--red-d);}
+.hint{margin-top:16px;font-size:12.5px;color:var(--sub);line-height:1.6;text-align:left;
+  background:#fafafa;border:1px solid var(--line);border-radius:10px;padding:12px;}
+.hint b{color:var(--ink);}
+.team-opts{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;}
+.team-opt{flex:1 1 28%;min-width:80px;border:1.5px solid var(--line);background:#fff;color:var(--ink);
+  border-radius:12px;padding:16px 8px;font-size:17px;font-weight:800;cursor:pointer;}
+.team-opt small{display:block;font-size:10.5px;color:var(--ghost);font-weight:500;margin-top:2px;}
+.team-opt.on{border-color:var(--red);background:var(--red);color:#fff;}
+.team-opt.on small{color:rgba(255,255,255,.85);}
+.team-opt:active{transform:scale(.97);}
+
+/* Card */
+.card{background:var(--card);border-radius:16px;margin-top:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06);}
+.card-head{padding:16px 16px 14px;border-bottom:1px solid var(--line);}
+.store-name{font-size:20px;font-weight:800;margin:0 0 4px;}
+.store-addr{font-size:13.5px;color:var(--sub);margin:0;word-break:keep-all;}
+.store-ctx{margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;}
+.store-ctx .chip{font-size:11.5px;background:#f3f4f6;color:#4b5563;border-radius:999px;padding:4px 9px;font-weight:600;}
+.store-ctx .chip b{color:var(--red);}
+.store-ctx .pre{flex:1 1 100%;background:#fff7ed;color:#9a3412;border:1px solid #fed7aa;font-weight:500;}
+
+/* Map */
+.map-block{padding:14px 16px;border-bottom:1px solid var(--line);}
+.travel{display:flex;gap:10px;margin-bottom:10px;}
+.travel .pill{
+  flex:1;background:#fafafa;border:1px solid var(--line);border-radius:12px;
+  padding:10px;text-align:center;
+}
+.travel .pill .ico{font-size:18px;}
+.travel .pill .t{font-size:17px;font-weight:800;margin-top:2px;}
+.travel .pill .t.dim{color:var(--ghost);font-weight:600;font-size:13px;}
+.travel .pill small{display:block;color:var(--sub);font-size:11px;}
+#map{width:100%;height:200px;border-radius:12px;background:#e9eaee;}
+.map-actions{display:flex;gap:8px;margin-top:10px;}
+.map-actions a{
+  flex:1;text-align:center;text-decoration:none;color:var(--red);
+  border:1px solid var(--red);border-radius:10px;padding:9px;font-size:13px;font-weight:700;
+}
+.map-actions a:active{background:#fff0f0;}
+
+/* Form */
+.form{padding:6px 16px 18px;}
+.field{padding:14px 0;border-bottom:1px solid var(--line);}
+.field:last-child{border-bottom:0;}
+.field .label{font-size:14px;font-weight:700;margin-bottom:9px;display:flex;align-items:center;gap:6px;}
+.field .num{background:var(--red);color:#fff;width:20px;height:20px;border-radius:6px;
+  font-size:12px;display:inline-flex;align-items:center;justify-content:center;font-weight:800;}
+.opts{display:flex;flex-wrap:wrap;gap:8px;}
+.opt{
+  border:1.5px solid var(--line);background:#fff;color:var(--ink);
+  padding:9px 14px;border-radius:10px;font-size:14px;cursor:pointer;position:relative;
+  transition:all .12s;
+}
+.opt small{display:block;font-size:10.5px;color:var(--ghost);margin-top:2px;font-weight:400;}
+.opt.on{border-color:var(--red);background:var(--red);color:#fff;}
+.opt.on small{color:rgba(255,255,255,.85);}
+.opt:active{transform:scale(.97);}
+input[type=text],textarea{
+  width:100%;border:1.5px solid var(--line);border-radius:10px;padding:11px;font-size:15px;
+  font-family:inherit;margin-top:8px;background:#fff;
+}
+input[type=text]:focus,textarea:focus{outline:none;border-color:var(--red);}
+textarea{min-height:60px;resize:vertical;}
+.inline-input{margin-top:8px;display:none;}
+.inline-input.show{display:block;}
+
+/* receipt */
+.receipt-drop{
+  border:1.5px dashed var(--line);border-radius:12px;padding:16px;text-align:center;
+  color:var(--sub);font-size:13px;cursor:pointer;
+}
+.receipt-drop b{color:var(--red);}
+.receipt-preview{margin-top:10px;position:relative;display:none;}
+.receipt-preview img{width:100%;border-radius:12px;border:1px solid var(--line);}
+.receipt-preview .rm{position:absolute;top:8px;right:8px;background:rgba(0,0,0,.6);color:#fff;
+  border:0;border-radius:8px;padding:6px 10px;font-size:12px;}
+
+/* Nav bar */
+.navbar{
+  position:fixed;left:0;right:0;bottom:0;z-index:20;
+  background:#fff;border-top:1px solid var(--line);
+  padding:10px 14px calc(10px + env(safe-area-inset-bottom));
+  display:flex;gap:10px;max-width:560px;margin:0 auto;
+}
+.navbar button{
+  flex:1;border:0;border-radius:12px;padding:14px;font-size:16px;font-weight:800;cursor:pointer;
+}
+.btn-prev{background:#eef0f3;color:var(--ink);}
+.btn-prev:disabled{opacity:.4;}
+.btn-next{background:var(--red);color:#fff;}
+.btn-next:active{background:var(--red-d);}
+.saved-dot{color:var(--ok);font-size:12px;text-align:center;padding-bottom:6px;font-weight:600;}
+
+/* Settings modal */
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:50;display:none;align-items:flex-end;}
+.modal.show{display:flex;}
+.sheet{background:#fff;width:100%;max-width:560px;margin:0 auto;border-radius:18px 18px 0 0;padding:20px;max-height:85vh;overflow:auto;}
+.sheet h3{margin:0 0 14px;font-size:18px;}
+.sheet label{font-size:13px;font-weight:700;display:block;margin:12px 0 4px;}
+.sheet .desc{font-size:12px;color:var(--sub);margin:0 0 6px;line-height:1.5;}
+.sheet .row{display:flex;gap:8px;margin-top:16px;}
+.sheet .row button{flex:1;padding:13px;border-radius:11px;border:0;font-weight:700;font-size:15px;}
+.btn-ghost{background:#eef0f3;color:var(--ink);}
+.btn-solid{background:var(--red);color:#fff;}
+.progress{height:5px;background:var(--line);border-radius:99px;overflow:hidden;margin-top:2px;}
+.progress i{display:block;height:100%;background:var(--red);width:0;transition:width .25s;}
+.export-line{margin-top:14px;font-size:13px;}
+.export-line button{background:#111;color:#fff;border:0;padding:11px 16px;border-radius:10px;font-weight:700;width:100%;}
+
+/* History list */
+.hist-search{width:100%;border:1.5px solid var(--line);border-radius:10px;padding:10px;font-size:14px;margin-bottom:6px;}
+.hist-summary{font-size:12.5px;color:var(--sub);margin:0 0 10px;}
+.hist-list{display:flex;flex-direction:column;gap:8px;}
+.hist-item{
+  display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:12px;
+  padding:11px 12px;cursor:pointer;background:#fff;text-align:left;
+}
+.hist-item:active{background:#fafafa;}
+.hist-item.cur{border-color:var(--red);background:#fff5f5;}
+.hist-item .no{width:30px;height:30px;flex:0 0 30px;border-radius:8px;background:#eef0f3;color:var(--sub);
+  display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;}
+.hist-item.done .no{background:var(--red);color:#fff;}
+.hist-item .body{flex:1;min-width:0;}
+.hist-item .nm{font-weight:700;font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.hist-item .meta{font-size:11.5px;color:var(--sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px;}
+.hist-item .st{flex:0 0 auto;font-size:11px;font-weight:800;padding:5px 9px;border-radius:999px;white-space:nowrap;}
+.hist-item .st.done{background:var(--red);color:#fff;}
+.hist-item .st.todo{background:#eef0f3;color:#9ca3af;}
+</style>
+</head>
+<body>
+
+<header>
+  <span class="logo">ECNESOFT · 영업 방문</span>
+  <span class="count" id="counter"></span>
+  <button class="gear" id="settleBtn" title="하루 총결산" style="display:none;">🏁</button>
+  <button class="gear" id="histBtn" title="방문 목록" style="display:none;">📋</button>
+  <button class="gear" id="gearBtn" title="설정">⚙︎</button>
+</header>
+
+<div class="wrap">
+
+  <!-- IMPORT SCREEN -->
+  <div id="importScreen">
+    <div class="import-box">
+      <h2>📋 방문 리스트 불러오기</h2>
+      <p>엑셀 파일을 선택하면 한 곳씩 순서대로 표시됩니다.</p>
+      <button class="import-btn" id="pickFile">엑셀 파일 Import</button>
+      <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" style="display:none">
+      <div style="margin-top:10px;">
+        <button id="tplBtn" style="background:#1D6F42;color:#fff;border:0;padding:11px 20px;border-radius:11px;font-size:14px;font-weight:700;">⬇️ 엑셀 템플릿 다운로드</button>
+      </div>
+      <div class="hint">
+        <b>먼저 템플릿을 받아</b> 가게명·주소를 채워 오시면 그대로 불러옵니다.<br>
+        · <b>가게명</b> 열: 가게명 / 상호 / store / name<br>
+        · <b>주소</b> 열: 주소 / address / addr / location<br>
+        열 이름이 달라도 자동으로 최대한 찾습니다.<br>
+        <b style="color:#c41219;">※ Import 하면 기존 입력 데이터는 모두 지워지고 새 엑셀로 교체됩니다.</b>
+      </div>
+      <div id="resumeBox" style="margin-top:14px;display:none;">
+        <button class="import-btn" id="resumeBtn" style="background:#111;">▶ 이어서 작업 (저장된 방문)</button>
+      </div>
+      <div id="loadBox" style="margin-top:10px;display:none;">
+        <button class="import-btn" id="loadBtn" style="background:#374151;">📂 저장된 날짜 불러오기 (Load)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TEAM SIZE SCREEN -->
+  <div id="teamScreen" style="display:none;">
+    <div class="import-box" style="text-align:left;">
+      <h2 style="text-align:center;">👥 몇 명이서 진행하나요?</h2>
+      <p style="text-align:center;">동선 순서 그대로 인원수만큼 구간을 나눠 배정합니다.<br>1명은 게임이 아닌 개인 방문 기록용입니다.</p>
+      <div class="team-opts" id="teamCountOpts">
+        <button class="team-opt" data-n="1">1명<small>개인기록</small></button>
+        <button class="team-opt" data-n="2">2명</button>
+        <button class="team-opt" data-n="3">3명</button>
+        <button class="team-opt" data-n="4">4명</button>
+        <button class="team-opt" data-n="5">5명</button>
+      </div>
+      <div id="playerPick" style="display:none;margin-top:18px;">
+        <p style="font-weight:700;text-align:center;margin:0 0 10px;">나는 몇 번 주자인가요?</p>
+        <div class="team-opts" id="playerNoOpts"></div>
+      </div>
+      <div id="splitPreview" class="hint" style="display:none;margin-top:16px;"></div>
+      <button class="import-btn" id="teamStart" style="display:none;width:100%;margin-top:16px;">이 구간으로 시작 ▶</button>
+      <div style="text-align:center;margin-top:12px;">
+        <button id="teamBack" style="background:none;border:0;color:#9ca3af;font-size:13px;text-decoration:underline;">← 다시 Import</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CARD SCREEN -->
+  <div id="cardScreen" style="display:none;">
+    <div class="progress"><i id="progBar"></i></div>
+
+    <div class="card">
+      <div class="card-head">
+        <p class="store-name" id="storeName">—</p>
+        <p class="store-addr" id="storeAddr">—</p>
+        <div class="store-ctx" id="storeCtx"></div>
+      </div>
+
+      <div class="map-block">
+        <div class="travel">
+          <div class="pill">
+            <div class="ico">🚶</div>
+            <div class="t dim" id="walkT">—</div>
+            <small>도보</small>
+          </div>
+          <div class="pill">
+            <div class="ico">🚗</div>
+            <div class="t dim" id="driveT">—</div>
+            <small>차량</small>
+          </div>
+        </div>
+        <div id="map"></div>
+        <div class="map-actions">
+          <a id="dirWalk" target="_blank">🚶 도보 길찾기</a>
+          <a id="dirDrive" target="_blank">🚗 차량 길찾기</a>
+        </div>
+      </div>
+
+      <div class="form">
+
+        <!-- 1 POS -->
+        <div class="field">
+          <div class="label"><span class="num">1</span> 현재 매장 POS</div>
+          <div class="opts" data-single id="posOpts">
+            <div class="opt" data-v="Square">Square</div>
+            <div class="opt" data-v="Qonus">Qonus</div>
+            <div class="opt" data-v="Kpos">Kpos</div>
+            <div class="opt" data-v="Ordernow">Ordernow</div>
+            <div class="opt" data-v="기타" data-other="posOther">기타</div>
+          </div>
+          <input type="text" class="inline-input" id="posOther" placeholder="기타 POS 이름 입력">
+        </div>
+
+        <!-- 2 주문방식 -->
+        <div class="field">
+          <div class="label"><span class="num">2</span> 주문 방식</div>
+          <div class="opts" data-single id="orderOpts">
+            <div class="opt" data-v="카운터 종이만">카운터 종이만<small>주문서만 카운터</small></div>
+            <div class="opt" data-v="종이로 주방 전달">종이로 주방전달<small>주방에 종이 전달</small></div>
+            <div class="opt" data-v="키오스크">키오스크<small>무인 주문기</small></div>
+            <div class="opt" data-v="QR">QR<small>테이블 QR 주문</small></div>
+          </div>
+        </div>
+
+        <!-- 3 로열티 -->
+        <div class="field">
+          <div class="label"><span class="num">3</span> 로열티 / 멤버십</div>
+          <div class="opts" data-single id="loyaltyOpts">
+            <div class="opt" data-v="없음">없음</div>
+            <div class="opt" data-v="멤버십 앱">멤버십 앱<small>디지털 멤버십</small></div>
+            <div class="opt" data-v="종이 스탬프카드">종이 스탬프카드<small>도장 적립</small></div>
+            <div class="opt" data-v="기타" data-other="loyaltyOther">기타</div>
+          </div>
+          <input type="text" class="inline-input" id="loyaltyOther" placeholder="로열티 방식 입력">
+        </div>
+
+        <!-- 4 규모 -->
+        <div class="field">
+          <div class="label"><span class="num">4</span> 매장 규모</div>
+          <div class="opts" data-single id="sizeOpts">
+            <div class="opt" data-v="소">소규모</div>
+            <div class="opt" data-v="중">중규모</div>
+            <div class="opt" data-v="대">대규모</div>
+          </div>
+        </div>
+
+        <!-- 5 바쁜 정도 -->
+        <div class="field">
+          <div class="label"><span class="num">5</span> 바쁜 정도</div>
+          <div class="opts" data-single id="busyOpts">
+            <div class="opt" data-v="바쁨">바쁨</div>
+            <div class="opt" data-v="보통">보통</div>
+            <div class="opt" data-v="한가함">한가함</div>
+          </div>
+        </div>
+
+        <!-- 6 SNS -->
+        <div class="field">
+          <div class="label"><span class="num">6</span> 매장 SNS 여부</div>
+          <div class="opts" data-single id="snsOpts">
+            <div class="opt" data-v="있음" data-other="snsNote">있음</div>
+            <div class="opt" data-v="없음">없음</div>
+            <div class="opt" data-v="모름">모름</div>
+          </div>
+          <input type="text" class="inline-input" id="snsNote" placeholder="인스타/페북 계정 등 (선택)">
+        </div>
+
+        <!-- 7 영수증 -->
+        <div class="field">
+          <div class="label"><span class="num">7</span> 영수증 첨부</div>
+          <div class="desc" style="font-size:12px;color:var(--sub);margin-bottom:8px;">POS 종류·서차지율·ABN 확인용</div>
+          <div class="receipt-drop" id="receiptDrop"><b>📷 촬영 / 사진 선택</b></div>
+          <input type="file" id="receiptInput" accept="image/*" capture="environment" style="display:none">
+          <div class="receipt-preview" id="receiptPreview">
+            <img id="receiptImg">
+            <button class="rm" id="receiptRm">삭제</button>
+          </div>
+        </div>
+
+        <!-- memo -->
+        <div class="field">
+          <div class="label">📝 메모 (선택)</div>
+          <textarea id="memo" placeholder="추가 특이사항, 담당자 반응 등"></textarea>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- NAV -->
+<div id="navWrap" style="display:none;">
+  <div class="saved-dot" id="savedDot" style="display:none;">✓ 자동 저장됨</div>
+  <div class="navbar">
+    <button class="btn-prev" id="prevBtn">‹ 이전</button>
+    <button class="btn-next" id="nextBtn">다음 ›</button>
+  </div>
+</div>
+
+<!-- SETTINGS -->
+<div class="modal" id="settingsModal">
+  <div class="sheet">
+    <h3>⚙︎ 설정</h3>
+    <label>Google Maps API 키</label>
+    <p class="desc">키를 넣으면 화면에 도보/차량 소요시간이 숫자로 표시됩니다. 비워두면 길찾기 버튼만 동작합니다.</p>
+    <input type="text" id="apiKeyInput" placeholder="AIza...">
+    <div class="export-line">
+      <button id="exportXlsxBtn" style="background:#1D6F42;">📊 엑셀(.xlsx) 리포트 추출</button>
+    </div>
+    <div class="export-line" style="margin-top:8px;">
+      <button id="exportBtn" style="background:#374151;">📤 CSV로 추출</button>
+    </div>
+    <div class="export-line" style="margin-top:16px;">
+      <button id="reimportBtn" style="background:var(--red);">🔄 새 엑셀로 다시 Import</button>
+    </div>
+    <div class="export-line" style="margin-top:8px;">
+      <button id="tplBtn2" style="background:#1D6F42;">⬇️ 엑셀 템플릿 다운로드</button>
+    </div>
+    <div class="export-line" style="margin-top:8px;">
+      <button id="resetBtn" style="background:#eef0f3;color:#c41219;">🗑 저장된 방문 데이터 초기화</button>
+    </div>
+    <div class="row">
+      <button class="btn-ghost" id="closeSettings">닫기</button>
+      <button class="btn-solid" id="saveSettings">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- HISTORY -->
+<div class="modal" id="histModal">
+  <div class="sheet">
+    <h3>📋 방문 목록 · 히스토리</h3>
+    <input type="text" class="hist-search" id="histSearch" placeholder="가게명 / 주소 검색">
+    <p class="hist-summary" id="histSummary"></p>
+    <div class="hist-list" id="histList"></div>
+    <div class="row">
+      <button class="btn-ghost" id="closeHist">닫기</button>
+      <button class="btn-solid" id="histExport">📊 엑셀로 추출</button>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+/* ---------- IndexedDB (records + receipt images) ---------- */
+const DB='ecnesoft_sales', STORE='kv';
+function idb(){return new Promise((res,rej)=>{const r=indexedDB.open(DB,1);
+  r.onupgradeneeded=()=>r.result.createObjectStore(STORE);
+  r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error);});}
+async function idbGet(k){const db=await idb();return new Promise((res,rej)=>{
+  const t=db.transaction(STORE,'readonly').objectStore(STORE).get(k);
+  t.onsuccess=()=>res(t.result); t.onerror=()=>rej(t.error);});}
+async function idbSet(k,v){const db=await idb();return new Promise((res,rej)=>{
+  const t=db.transaction(STORE,'readwrite').objectStore(STORE).put(v,k);
+  t.onsuccess=()=>res(); t.onerror=()=>rej(t.error);});}
+
+/* ---------- State ---------- */
+let records=[];   // 이 기기(주자)가 담당하는 방문 리스트
+let parsedAll=[]; // Import 직후 전체 리스트(분배 전 임시 보관)
+let idx=0;
+let players=1, playerNo=1; // 총 인원 / 내 주자 번호
+let map,directionsRenderer,geoPos=null;
+
+const $=id=>document.getElementById(id);
+
+/* ---------- Column detection ---------- */
+function pick(row, keys){
+  const lower={}; Object.keys(row).forEach(k=>lower[k.toString().trim().toLowerCase()]=row[k]);
+  for(const key of keys){ const v=lower[key]; if(v!==undefined && v!=='') return String(v).trim(); }
+  return '';
+}
+function parseRows(rows){
+  return rows.map(r=>({
+    store: pick(r,['가게명','상호','상호명','store','store name','name','매장','매장명','shop']),
+    address: pick(r,['주소','address','addr','location','위치','소재지']),
+    biz: pick(r,['업태','업종','category','type']),
+    hours: pick(r,['영업시간 메모','영업시간','hours','시간']),
+    precheck: pick(r,['사전 확인사항','확인사항','precheck','비고']),
+    move: pick(r,['이동','move','동선']),
+    day: pick(r,['day','일차','일자']),
+    seq: pick(r,['순서','순번','seq','no','번호']),
+    pos:'',posOther:'',order:'',loyalty:'',loyaltyOther:'',size:'',busy:'',sns:'',snsNote:'',receipt:'',memo:''
+  })).filter(x=>x.store||x.address);
+}
+
+/* ---------- Import ---------- */
+$('pickFile').onclick=()=>$('fileInput').click();
+$('fileInput').onchange=e=>{
+  const f=e.target.files[0]; if(!f){return;}
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    try{
+      const wb=XLSX.read(ev.target.result,{type:'array'});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const rows=XLSX.utils.sheet_to_json(ws,{defval:''});
+      const parsed=parseRows(rows);
+      if(!parsed.length){alert('가게명/주소를 찾지 못했습니다.\n템플릿을 받아 형식을 맞춰 주세요.');return;}
+      // 기존 입력 데이터가 있으면 확인 (실수 방지)
+      const hadData=records.some(isFilled);
+      if(hadData && !confirm('기존 입력 데이터('+records.filter(isFilled).length+'곳)를 모두 삭제하고\n새 엑셀 '+parsed.length+'곳으로 교체할까요?')){
+        return;
+      }
+      // 완전 교체: 기존 데이터 폐기 후 인원 분배 화면으로
+      parsedAll=parsed;
+      $('settingsModal').classList.remove('show');
+      showTeam();
+    }catch(err){alert('파일을 읽지 못했습니다: '+err.message);}
+  };
+  reader.readAsArrayBuffer(f);
+  $('fileInput').value=''; // 같은 파일 다시 선택 가능하도록 초기화
+};
+
+/* 다시 Import (설정에서) — 같은 파일 입력을 재사용 */
+$('reimportBtn').onclick=()=>$('fileInput').click();
+
+/* 엑셀 템플릿 다운로드 */
+function downloadTemplate(){
+  const sample=[
+    {'가게명':'예) Sunrise Cafe','주소':'예) 12 George St, Parramatta NSW 2150'},
+    {'가게명':'','주소':''},
+    {'가게명':'','주소':''}
+  ];
+  const ws=XLSX.utils.json_to_sheet(sample);
+  ws['!cols']=[{wch:26},{wch:44}];
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'방문리스트');
+  XLSX.writeFile(wb,'영업방문_템플릿.xlsx');
+}
+$('tplBtn').onclick=downloadTemplate;
+$('tplBtn2').onclick=downloadTemplate;
+
+/* ---------- Persistence ---------- */
+async function saveAll(){ await idbSet('records',records); await idbSet('idx',idx); await idbSet('meta',{players,playerNo}); }
+async function loadSaved(){
+  const r=await idbGet('records'); const i=await idbGet('idx'); const m=await idbGet('meta');
+  if(r&&r.length){ records=r; idx=i||0; if(m){players=m.players||1;playerNo=m.playerNo||1;} $('resumeBox').style.display='block'; }
+  const days=await idbGet('days');
+  if(days&&Object.keys(days).length) $('loadBox').style.display='block';
+}
+$('resumeBtn')&&($('resumeBtn').onclick=()=>{ if(records.length){startCards();} });
+
+/* ---------- Card rendering ---------- */
+function startCards(){
+  $('importScreen').style.display='none';
+  $('teamScreen').style.display='none';
+  $('cardScreen').style.display='block';
+  $('navWrap').style.display='block';
+  $('histBtn').style.display='';
+  $('settleBtn').style.display='';
+  ensureGeo();
+  render();
+}
+/* record considered "입력됨" if any store-info field is filled */
+function isFilled(r){
+  return !!(r.pos||r.order||r.loyalty||r.size||r.busy||r.sns||r.receipt||r.memo||r.posOther||r.loyaltyOther||r.snsNote);
+}
+function render(){
+  const r=records[idx];
+  $('counter').textContent=(players>1?(playerNo+'/'+players+'조·'):'')+(idx+1)+' / '+records.length;
+  $('progBar').style.width=((idx+1)/records.length*100)+'%';
+  $('storeName').textContent=r.store||'(가게명 없음)';
+  $('storeAddr').textContent=r.address||'(주소 없음)';
+  renderCtx(r);
+
+  // single-select groups
+  setGroup('posOpts',r.pos); toggleInline('posOther',r.pos==='기타',r.posOther);
+  setGroup('orderOpts',r.order);
+  setGroup('loyaltyOpts',r.loyalty); toggleInline('loyaltyOther',r.loyalty==='기타',r.loyaltyOther);
+  setGroup('sizeOpts',r.size);
+  setGroup('busyOpts',r.busy);
+  setGroup('snsOpts',r.sns); toggleInline('snsNote',r.sns==='있음',r.snsNote);
+  $('memo').value=r.memo||'';
+
+  // receipt
+  if(r.receipt){ $('receiptImg').src=r.receipt; $('receiptPreview').style.display='block'; $('receiptDrop').style.display='none'; }
+  else{ $('receiptPreview').style.display='none'; $('receiptDrop').style.display='block'; }
+
+  // nav
+  $('prevBtn').disabled = idx===0;
+  $('nextBtn').textContent = idx===records.length-1 ? '완료 ✓' : '다음 ›';
+
+  updateMap();
+  window.scrollTo(0,0);
+}
+function renderCtx(r){
+  const c=$('storeCtx'); c.innerHTML='';
+  const chip=(html,cls)=>{const s=document.createElement('span');s.className='chip'+(cls?' '+cls:'');s.innerHTML=html;c.appendChild(s);};
+  if(r.seq||r.day) chip('<b>'+(r.day?('Day'+r.day+' '):'')+(r.seq?('#'+r.seq):'')+'</b>');
+  if(r.move) chip((/차|drive/i.test(r.move)?'🚗 ':'🚶 ')+esc(r.move));
+  if(r.biz) chip('🏷 '+esc(r.biz));
+  if(r.hours) chip('🕒 '+esc(r.hours));
+  if(r.precheck) chip('📌 '+esc(r.precheck),'pre');
+}
+function setGroup(gid,val){
+  $(gid).querySelectorAll('.opt').forEach(o=>o.classList.toggle('on',o.dataset.v===val));
+}
+function toggleInline(inputId,show,val){
+  const el=$(inputId); el.classList.toggle('show',!!show); el.value=val||'';
+}
+
+/* ---------- Option clicks (event delegation) ---------- */
+document.querySelectorAll('.opts[data-single]').forEach(grp=>{
+  grp.addEventListener('click',e=>{
+    const opt=e.target.closest('.opt'); if(!opt)return;
+    grp.querySelectorAll('.opt').forEach(o=>o.classList.remove('on'));
+    opt.classList.add('on');
+    const val=opt.dataset.v;
+    const map={posOpts:'pos',orderOpts:'order',loyaltyOpts:'loyalty',sizeOpts:'size',busyOpts:'busy',snsOpts:'sns'};
+    records[idx][map[grp.id]]=val;
+    if(opt.dataset.other) toggleInline(opt.dataset.other,true,records[idx][fieldOf(opt.dataset.other)]);
+    else{ // hide sibling inline inputs when non-other chosen
+      grp.querySelectorAll('.opt[data-other]').forEach(o=>{ if(o!==opt){const inp=$(o.dataset.other); if(inp)inp.classList.remove('show');}});
+    }
+    flashSaved(); saveAll();
+  });
+});
+function fieldOf(id){return {posOther:'posOther',loyaltyOther:'loyaltyOther',snsNote:'snsNote'}[id];}
+
+['posOther','loyaltyOther','snsNote','memo'].forEach(id=>{
+  $(id).addEventListener('input',()=>{
+    const f={posOther:'posOther',loyaltyOther:'loyaltyOther',snsNote:'snsNote',memo:'memo'}[id];
+    records[idx][f]=$(id).value; flashSaved(); saveAll();
+  });
+});
+
+/* ---------- Receipt ---------- */
+$('receiptDrop').onclick=()=>$('receiptInput').click();
+$('receiptInput').onchange=e=>{
+  const f=e.target.files[0]; if(!f)return;
+  compress(f,dataUrl=>{
+    records[idx].receipt=dataUrl;
+    $('receiptImg').src=dataUrl; $('receiptPreview').style.display='block'; $('receiptDrop').style.display='none';
+    flashSaved(); saveAll();
+  });
+};
+$('receiptRm').onclick=()=>{
+  records[idx].receipt='';
+  $('receiptPreview').style.display='none'; $('receiptDrop').style.display='block';
+  $('receiptInput').value=''; flashSaved(); saveAll();
+};
+function compress(file,cb){
+  const img=new Image(); const rd=new FileReader();
+  rd.onload=()=>{img.onload=()=>{
+    const max=1280; let{width:w,height:h}=img;
+    if(w>h&&w>max){h=h*max/w;w=max;} else if(h>max){w=w*max/h;h=max;}
+    const c=document.createElement('canvas'); c.width=w;c.height=h;
+    c.getContext('2d').drawImage(img,0,0,w,h);
+    cb(c.toDataURL('image/jpeg',0.7));
+  }; img.src=rd.result;};
+  rd.readAsDataURL(file);
+}
+
+/* ---------- Navigation ---------- */
+$('nextBtn').onclick=()=>{
+  if(idx<records.length-1){ idx++; saveAll(); render(); }
+  else{ if(confirm('마지막 방문입니다. 결과를 엑셀 리포트로 추출할까요?')) exportXLSX(); }
+};
+$('prevBtn').onclick=()=>{ if(idx>0){ idx--; saveAll(); render(); } };
+let savedTimer;
+function flashSaved(){
+  const d=$('savedDot'); d.style.display='block';
+  clearTimeout(savedTimer); savedTimer=setTimeout(()=>d.style.display='none',1200);
+}
+
+/* ---------- Geolocation ---------- */
+function ensureGeo(){
+  if(!navigator.geolocation)return;
+  navigator.geolocation.getCurrentPosition(
+    p=>{geoPos={lat:p.coords.latitude,lng:p.coords.longitude}; updateMap();},
+    ()=>{}, {enableHighAccuracy:true,timeout:8000,maximumAge:60000});
+}
+
+/* ---------- Google Maps ---------- */
+const DEFAULT_KEY=''; // 공개 사이트라 키를 파일에 넣지 않음. billing 켜면 앱 ⚙︎설정에서 입력(기기별 저장).
+function getKey(){return localStorage.getItem('gmapsKey')||DEFAULT_KEY;}
+let mapsLoaded=false, mapsLoading=false;
+function loadMaps(cb){
+  if(mapsLoaded){cb();return;}
+  const key=getKey(); if(!key){cb();return;}
+  if(mapsLoading){return;}
+  mapsLoading=true;
+  window.__mapsReady=()=>{mapsLoaded=true;mapsLoading=false;cb();};
+  const s=document.createElement('script');
+  s.src='https://maps.googleapis.com/maps/api/js?key='+encodeURIComponent(key)+'&callback=__mapsReady';
+  s.onerror=()=>{mapsLoading=false;};
+  document.head.appendChild(s);
+}
+function updateMap(){
+  const r=records[idx]; let addr=r.address||r.store||'';
+  if(addr && !/NSW|VIC|QLD|SA|WA|TAS|ACT|NT|australia|호주/i.test(addr)) addr+=', NSW, Australia';
+  const dest=encodeURIComponent(addr);
+  const origin=geoPos?('&origin='+geoPos.lat+','+geoPos.lng):'';
+
+  // Directions buttons — always work, no key/billing needed (opens Google Maps app, shows times there)
+  $('dirWalk').href='https://www.google.com/maps/dir/?api=1'+origin+'&destination='+dest+'&travelmode=walking';
+  $('dirDrive').href='https://www.google.com/maps/dir/?api=1'+origin+'&destination='+dest+'&travelmode=driving';
+
+  // Map display — keyless embed, works without billing
+  if(addr){
+    $('map').innerHTML='<iframe title="map" width="100%" height="200" style="border:0;border-radius:12px" '
+      +'loading="lazy" referrerpolicy="no-referrer-when-downgrade" '
+      +'src="https://www.google.com/maps?q='+dest+'&z=15&output=embed"></iframe>';
+  }else{
+    $('map').innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#9ca3af;font-size:12.5px;">주소가 없습니다.</div>';
+  }
+
+  // Inline travel-time numbers — needs a key WITH billing enabled (Distance Matrix API)
+  $('walkT').textContent='—'; $('walkT').className='t dim';
+  $('driveT').textContent='—'; $('driveT').className='t dim';
+  if(!getKey()||!geoPos||!addr) return;
+  loadMaps(()=>{
+    if(!mapsLoaded) return;
+    computeTimes(addr);
+  });
+}
+function computeTimes(destAddr){
+  const svc=new google.maps.DistanceMatrixService();
+  const origin=new google.maps.LatLng(geoPos.lat,geoPos.lng);
+  [['WALKING','walkT'],['DRIVING','driveT']].forEach(([mode,el])=>{
+    svc.getDistanceMatrix({origins:[origin],destinations:[destAddr],travelMode:mode},(resp,st)=>{
+      if(st==='OK'){
+        const e=resp.rows[0].elements[0];
+        if(e&&e.status==='OK'){ $(el).textContent=e.duration.text; $(el).className='t'; }
+      }
+    });
+  });
+}
+
+/* ---------- Settings ---------- */
+$('gearBtn').onclick=()=>{$('apiKeyInput').value=getKey();$('settingsModal').classList.add('show');};
+$('closeSettings').onclick=()=>$('settingsModal').classList.remove('show');
+$('saveSettings').onclick=()=>{
+  localStorage.setItem('gmapsKey',$('apiKeyInput').value.trim());
+  mapsLoaded=false;mapsLoading=false; map=null;
+  $('settingsModal').classList.remove('show');
+  if($('cardScreen').style.display!=='none') updateMap();
+};
+$('resetBtn').onclick=async()=>{
+  if(confirm('저장된 모든 방문 입력 데이터를 삭제할까요?')){
+    await idbSet('records',[]); await idbSet('idx',0);
+    location.reload();
+  }
+};
+
+/* ---------- CSV export ---------- */
+$('exportBtn').onclick=exportCSV;
+$('exportXlsxBtn').onclick=exportXLSX;
+function exportCSV(){
+  if(!records.length){alert('내보낼 데이터가 없습니다.');return;}
+  const head=['가게명','주소','POS','POS기타','주문방식','로열티','로열티기타','규모','바쁜정도','SNS','SNS메모','메모','영수증첨부'];
+  const esc=v=>'"'+String(v||'').replace(/"/g,'""')+'"';
+  const lines=[head.join(',')];
+  records.forEach(r=>{
+    lines.push([r.store,r.address,r.pos,r.posOther,r.order,r.loyalty,r.loyaltyOther,r.size,r.busy,r.sns,r.snsNote,r.memo,r.receipt?'있음':'없음'].map(esc).join(','));
+  });
+  const blob=new Blob(['﻿'+lines.join('\n')],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download='영업방문_결과.csv'; a.click();
+  URL.revokeObjectURL(url);
+}
+
+/* ---------- Team split (game mode) ---------- */
+let pendingN=1, pendingPlayer=1;
+function showTeam(){
+  $('importScreen').style.display='none';
+  $('teamScreen').style.display='block';
+  $('teamCountOpts').querySelectorAll('.team-opt').forEach(b=>b.classList.remove('on'));
+  $('playerPick').style.display='none';
+  $('splitPreview').style.display='none';
+  $('teamStart').style.display='none';
+  pendingN=1; pendingPlayer=1;
+}
+$('teamCountOpts').addEventListener('click',e=>{
+  const b=e.target.closest('.team-opt'); if(!b)return;
+  $('teamCountOpts').querySelectorAll('.team-opt').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on');
+  pendingN=+b.dataset.n;
+  if(pendingN===1){ // 개인기록 모드: 바로 시작
+    players=1; playerNo=1; records=parsedAll.slice(); idx=0; saveAll(); startCards(); return;
+  }
+  const wrap=$('playerNoOpts'); wrap.innerHTML='';
+  for(let k=1;k<=pendingN;k++){
+    const btn=document.createElement('button'); btn.className='team-opt'; btn.dataset.p=k; btn.textContent=k+'번';
+    wrap.appendChild(btn);
+  }
+  $('playerPick').style.display='block';
+  $('splitPreview').style.display='none';
+  $('teamStart').style.display='none';
+});
+$('playerNoOpts').addEventListener('click',e=>{
+  const b=e.target.closest('.team-opt'); if(!b)return;
+  $('playerNoOpts').querySelectorAll('.team-opt').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on');
+  pendingPlayer=+b.dataset.p;
+  const seg=splitFor(parsedAll.length,pendingN,pendingPlayer);
+  const cnt=seg.end-seg.start;
+  $('splitPreview').style.display='block';
+  $('splitPreview').innerHTML='<b>'+pendingN+'명 중 '+pendingPlayer+'번</b> 담당 → 전체 '+parsedAll.length+'곳 중 <b style="color:#ED1C24">'+cnt+'곳</b><br>순번 '+(seg.start+1)+' ~ '+seg.end+' 구간 (동선 순서 유지)';
+  $('teamStart').style.display='block';
+});
+$('teamStart').onclick=()=>{
+  const seg=splitFor(parsedAll.length,pendingN,pendingPlayer);
+  players=pendingN; playerNo=pendingPlayer;
+  records=parsedAll.slice(seg.start,seg.end); idx=0;
+  saveAll(); startCards();
+};
+$('teamBack').onclick=()=>{ $('teamScreen').style.display='none'; $('importScreen').style.display='block'; };
+
+/* 나머지 배분: total을 시드로 고정 pseudo-random → 모든 기기 동일 결과(구간 겹침/누락 방지) */
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+function splitFor(total,N,player){
+  const base=Math.floor(total/N), rem=total%N;
+  const order=[...Array(N).keys()];
+  const rand=mulberry32(total*100+N);
+  for(let i=order.length-1;i>0;i--){const j=Math.floor(rand()*(i+1));[order[i],order[j]]=[order[j],order[i]];}
+  const extra=new Set(order.slice(0,rem));
+  const sizes=[...Array(N).keys()].map(k=>base+(extra.has(k)?1:0));
+  let start=0; for(let k=0;k<player-1;k++) start+=sizes[k];
+  return {start,end:start+sizes[player-1]};
+}
+
+/* ---------- Daily settlement + email report ---------- */
+function todayStr(){return new Date().toISOString().slice(0,10);}
+$('settleBtn').onclick=settle;
+async function settle(){
+  const done=records.filter(isFilled).length, miss=records.length-done;
+  if(!confirm('오늘 방문을 총결산할까요?\n\n✅ 완료 '+done+'곳\n▫️ 미입력 '+miss+'곳\n합계 '+records.length+'곳\n\n총결산하면 오늘 데이터가 저장되고,\ninho.kim@posnet.com.au 로 보낼 이메일이 열립니다.')) return;
+  await saveDaySnapshot(done,miss);
+  exportXLSX();  // 첨부용 엑셀 파일 다운로드
+  setTimeout(()=>openReportEmail(done,miss),900);  // 다운로드와 충돌 방지
+}
+async function saveDaySnapshot(done,miss){
+  const days=(await idbGet('days'))||{};
+  days[todayStr()]={records:JSON.parse(JSON.stringify(records)),players,playerNo,done,total:records.length,savedAt:new Date().toISOString()};
+  await idbSet('days',days);
+  $('loadBox').style.display='block';
+}
+function openReportEmail(done,miss){
+  const date=todayStr();
+  const who=players>1?(players+'명 중 '+playerNo+'번'):'개인 기록';
+  let body='[ECNESOFT 영업 방문 총결산]\n날짜: '+date+'\n담당: '+who+' ('+records.length+'곳)\n완료: '+done+' / 미입력: '+miss+'\n\n■ 방문 결과\n';
+  records.forEach((r,i)=>{
+    const st=isFilled(r)?'[완료]':'[미입력]';
+    const posv=r.pos==='기타'?('기타:'+r.posOther):r.pos;
+    const parts=[posv&&('POS:'+posv),r.size&&(r.size+'규모'),r.busy,r.memo].filter(Boolean).join(' · ');
+    body+=(i+1)+'. '+st+' '+(r.store||'')+(parts?(' — '+parts):'')+'\n';
+  });
+  body+='\n※ 상세·영수증 사진은 함께 다운로드된 엑셀(.xlsx)을 첨부해 주세요.';
+  const subject='영업 방문 총결산 '+date+(players>1?(' · '+playerNo+'번'):'');
+  location.href='mailto:inho.kim@posnet.com.au?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body);
+}
+
+/* ---------- Load saved day ---------- */
+$('loadBtn').onclick=loadDay;
+async function loadDay(){
+  const days=(await idbGet('days'))||{};
+  const keys=Object.keys(days).sort().reverse();
+  if(!keys.length){alert('저장된 날짜가 없습니다.');return;}
+  const list=keys.map((k,i)=>(i+1)+') '+k+' — 완료 '+days[k].done+'/'+days[k].total+(days[k].players>1?(' ('+days[k].players+'명중 '+days[k].playerNo+'번)'):'')).join('\n');
+  const pick=prompt('불러올 날짜 번호를 입력하세요:\n\n'+list,'1');
+  if(!pick)return;
+  const sel=keys[(+pick)-1]; if(!sel||!days[sel]){alert('잘못된 번호입니다.');return;}
+  const d=days[sel];
+  records=d.records; idx=0; players=d.players||1; playerNo=d.playerNo||1;
+  saveAll(); startCards();
+}
+
+/* ---------- History ---------- */
+$('histBtn').onclick=()=>{ renderHist(); $('histModal').classList.add('show'); };
+$('closeHist').onclick=()=>$('histModal').classList.remove('show');
+$('histSearch').addEventListener('input',renderHist);
+$('histExport').onclick=exportXLSX;
+function renderHist(){
+  const q=$('histSearch').value.trim().toLowerCase();
+  const done=records.filter(isFilled).length;
+  $('histSummary').textContent='총 '+records.length+'곳 · 입력완료 '+done+' · 남음 '+(records.length-done);
+  const list=$('histList'); list.innerHTML='';
+  records.forEach((r,i)=>{
+    if(q && !((r.store||'').toLowerCase().includes(q) || (r.address||'').toLowerCase().includes(q))) return;
+    const filled=isFilled(r);
+    const el=document.createElement('button');
+    el.className='hist-item'+(filled?' done':'')+(i===idx?' cur':'');
+    const bits=[r.pos&&('POS:'+r.pos),r.size&&(r.size+'규모'),r.busy].filter(Boolean).join(' · ');
+    const meta=filled?bits:(r.address||'—');
+    el.innerHTML='<span class="no">'+(i+1)+'</span>'
+      +'<span class="body"><span class="nm">'+esc(r.store||'(가게명 없음)')+'</span>'
+      +'<span class="meta">'+esc(meta)+'</span></span>'
+      +'<span class="st '+(filled?'done':'todo')+'">'+(filled?'완료':'미입력')+'</span>';
+    el.onclick=()=>{ idx=i; saveAll(); render(); $('histModal').classList.remove('show'); };
+    list.appendChild(el);
+  });
+  if(!list.children.length) list.innerHTML='<p style="color:#9ca3af;text-align:center;padding:20px;font-size:13px;">검색 결과 없음</p>';
+}
+function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML;}
+
+/* ---------- Excel (.xlsx) report export ---------- */
+function exportXLSX(){
+  if(!records.length){alert('내보낼 데이터가 없습니다.');return;}
+  const rows=records.map((r,i)=>({
+    '순번':i+1,
+    '가게명':r.store||'',
+    '주소':r.address||'',
+    'POS':r.pos==='기타'?('기타: '+(r.posOther||'')):r.pos,
+    '주문방식':r.order,
+    '로열티':r.loyalty==='기타'?('기타: '+(r.loyaltyOther||'')):r.loyalty,
+    '규모':r.size,
+    '바쁜정도':r.busy,
+    'SNS':r.sns==='있음'?('있음: '+(r.snsNote||'')):r.sns,
+    '영수증':r.receipt?'첨부됨':'',
+    '메모':r.memo,
+    '입력상태':isFilled(r)?'완료':'미입력'
+  }));
+  const ws=XLSX.utils.json_to_sheet(rows);
+  ws['!cols']=[{wch:6},{wch:20},{wch:34},{wch:16},{wch:16},{wch:18},{wch:8},{wch:9},{wch:20},{wch:9},{wch:30},{wch:9}];
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'방문결과');
+  const today=new Date().toISOString().slice(0,10);
+  XLSX.writeFile(wb,'영업방문_리포트_'+today+'.xlsx');
+}
+
+/* ---------- PWA: installable + offline shell ---------- */
+(function(){
+  const manifest={
+    name:'ECNESOFT 영업 방문',short_name:'영업방문',start_url:'.',display:'standalone',
+    background_color:'#ffffff',theme_color:'#ED1C24',
+    icons:[{src:"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='512' height='512'%3E%3Crect width='512' height='512' rx='96' fill='%23ED1C24'/%3E%3Ctext x='256' y='340' font-size='280' font-family='Arial' font-weight='bold' fill='white' text-anchor='middle'%3EE%3C/text%3E%3C/svg%3E",sizes:'512x512',type:'image/svg+xml',purpose:'any'}]
+  };
+  const blob=new Blob([JSON.stringify(manifest)],{type:'application/json'});
+  const link=document.createElement('link'); link.rel='manifest'; link.href=URL.createObjectURL(blob);
+  document.head.appendChild(link);
+  // service worker (offline) only works when hosted over http(s); harmless to skip on file://
+  if('serviceWorker' in navigator && location.protocol.startsWith('http')){
+    const sw="self.addEventListener('install',e=>self.skipWaiting());self.addEventListener('activate',e=>self.clients.claim());self.addEventListener('fetch',e=>{e.respondWith(caches.open('ecnesoft-v1').then(c=>c.match(e.request).then(hit=>hit||fetch(e.request).then(res=>{try{c.put(e.request,res.clone())}catch(_){}return res}).catch(()=>hit))))});";
+    const swUrl=URL.createObjectURL(new Blob([sw],{type:'text/javascript'}));
+    navigator.serviceWorker.register(swUrl).catch(()=>{});
+  }
+})();
+
+/* ---------- Boot ---------- */
+loadSaved();
+</script>
+</body>
+</html>
