@@ -993,11 +993,9 @@ function exportXLSX(){
   const blob=new Blob([JSON.stringify(manifest)],{type:'application/json'});
   const link=document.createElement('link'); link.rel='manifest'; link.href=URL.createObjectURL(blob);
   document.head.appendChild(link);
-  // service worker (offline) only works when hosted over http(s); harmless to skip on file://
+  // 서비스워커: 별도 sw.js(네트워크 우선)로 등록. http(s)에서만, file://은 건너뜀.
   if('serviceWorker' in navigator && location.protocol.startsWith('http')){
-    const sw="self.addEventListener('install',e=>self.skipWaiting());self.addEventListener('activate',e=>self.clients.claim());self.addEventListener('fetch',e=>{e.respondWith(caches.open('ecnesoft-v1').then(c=>c.match(e.request).then(hit=>hit||fetch(e.request).then(res=>{try{c.put(e.request,res.clone())}catch(_){}return res}).catch(()=>hit))))});";
-    const swUrl=URL.createObjectURL(new Blob([sw],{type:'text/javascript'}));
-    navigator.serviceWorker.register(swUrl).catch(()=>{});
+    navigator.serviceWorker.register('./sw.js').then(reg=>{ if(reg.update) reg.update(); }).catch(()=>{});
   }
 })();
 
