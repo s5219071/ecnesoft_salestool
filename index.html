@@ -73,6 +73,7 @@ header .gear{background:rgba(255,255,255,.18);border:0;color:#fff;width:34px;hei
 .store-ctx .chip{font-size:11.5px;background:#f3f4f6;color:#4b5563;border-radius:999px;padding:4px 9px;font-weight:600;}
 .store-ctx .chip b{color:var(--red);}
 .store-ctx .pre{flex:1 1 100%;background:#fff7ed;color:#9a3412;border:1px solid #fed7aa;font-weight:500;}
+.store-ctx .visited{background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;}
 .noinfo-banner{margin-top:10px;background:#fffbeb;border:1px solid #fcd34d;color:#b45309;
   border-radius:10px;padding:9px 12px;font-size:13px;font-weight:700;text-align:center;}
 
@@ -494,7 +495,7 @@ function parseRows(rows){
     move: pick(r,['이동','move','동선']),
     day: pick(r,['day','일차','일자']),
     seq: pick(r,['순서','순번','seq','no','번호']),
-    noInfo:false,
+    noInfo:false, visitedAt:'',
     pos:'',posOther:'',order:'',loyalty:'',loyaltyOther:'',size:'',busy:'',sns:'',snsNote:'',receipt:'',memo:''
   })).filter(x=>x.store||x.address);
 }
@@ -573,6 +574,9 @@ function isFilled(r){
 /* 3-state: 정보없음(noinfo) / 완료(done) / 미입력(todo) */
 function statusOf(r){ if(r.noInfo) return 'noinfo'; return isFilled(r)?'done':'todo'; }
 function processed(r){ return statusOf(r)!=='todo'; }
+/* 현재 로컬 날짜·시각 "YYYY-MM-DD HH:mm" */
+function nowStamp(){ const d=new Date(), p=n=>String(n).padStart(2,'0');
+  return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes()); }
 function render(){
   const r=records[idx];
   $('counter').textContent=(players>1?(playerNo+'/'+players+'조·'):'')+(idx+1)+' / '+records.length;
@@ -613,6 +617,7 @@ function renderCtx(r){
   if(r.move) chip((/차|drive/i.test(r.move)?'🚗 ':'🚶 ')+esc(r.move));
   if(r.biz) chip('🏷 '+esc(r.biz));
   if(r.hours) chip('🕒 '+esc(r.hours));
+  if(r.visitedAt) chip('✅ 방문 '+esc(r.visitedAt),'visited');
   if(r.precheck) chip('📌 '+esc(r.precheck),'pre');
 }
 function setGroup(gid,val){
@@ -676,14 +681,17 @@ function compress(file,cb){
 
 /* ---------- Navigation ---------- */
 $('nextBtn').onclick=()=>{
+  records[idx].visitedAt=nowStamp();   // [다음] 누른 시각 기록
   if(idx<records.length-1){ idx++; saveAll(); render(); }
-  else{ if(confirm('마지막 방문입니다. 결과를 엑셀 리포트로 추출할까요?')) exportXLSX(); }
+  else{ saveAll(); if(confirm('마지막 방문입니다. 결과를 엑셀 리포트로 추출할까요?')) exportXLSX(); }
 };
 $('prevBtn').onclick=()=>{ if(idx>0){ idx--; saveAll(); render(); } };
 $('noInfoBtn').onclick=()=>{
   const r=records[idx]; r.noInfo=!r.noInfo;
+  if(r.noInfo && !r.visitedAt) r.visitedAt=nowStamp();
   $('noInfoBtn').classList.toggle('on',r.noInfo);
   $('noInfoBanner').style.display=r.noInfo?'block':'none';
+  renderCtx(r);
   flashSaved(); saveAll();
 };
 let savedTimer;
@@ -778,11 +786,11 @@ $('exportBtn').onclick=exportCSV;
 $('exportXlsxBtn').onclick=exportXLSX;
 function exportCSV(){
   if(!records.length){alert('내보낼 데이터가 없습니다.');return;}
-  const head=['가게명','주소','POS','POS기타','주문방식','로열티','로열티기타','규모','바쁜정도','SNS','SNS메모','메모','영수증첨부'];
+  const head=['가게명','주소','POS','POS기타','주문방식','로열티','로열티기타','규모','바쁜정도','SNS','SNS메모','메모','영수증첨부','방문시각'];
   const esc=v=>'"'+String(v||'').replace(/"/g,'""')+'"';
   const lines=[head.join(',')];
   records.forEach(r=>{
-    lines.push([r.store,r.address,r.pos,r.posOther,r.order,r.loyalty,r.loyaltyOther,r.size,r.busy,r.sns,r.snsNote,r.memo,r.receipt?'있음':'없음'].map(esc).join(','));
+    lines.push([r.store,r.address,r.pos,r.posOther,r.order,r.loyalty,r.loyaltyOther,r.size,r.busy,r.sns,r.snsNote,r.memo,r.receipt?'있음':'없음',r.visitedAt||''].map(esc).join(','));
   });
   const blob=new Blob(['﻿'+lines.join('\n')],{type:'text/csv;charset=utf-8'});
   const url=URL.createObjectURL(blob);
@@ -881,7 +889,8 @@ function openReportEmail(c){
     const s=statusOf(r), st=(s==='done'?'[완료]':(s==='noinfo'?'[정보없음]':'[미입력]'));
     const posv=r.pos==='기타'?('기타:'+r.posOther):r.pos;
     const parts=[posv&&('POS:'+posv),r.size&&(r.size+'규모'),r.busy,r.memo].filter(Boolean).join(' · ');
-    body+=(i+1)+'. '+st+' '+(r.store||'')+(parts?(' — '+parts):'')+'\n';
+    const t=r.visitedAt?(' @'+r.visitedAt):'';
+    body+=(i+1)+'. '+st+t+' '+(r.store||'')+(parts?(' — '+parts):'')+'\n';
   });
   body+='\n※ 상세·영수증 사진은 함께 다운로드된 엑셀(.xlsx)을 첨부해 주세요.';
   const subject='영업 방문 총결산 '+date+(players>1?(' · '+playerNo+'번'):'');
@@ -920,7 +929,8 @@ function renderHist(){
     const el=document.createElement('div');
     el.className='hist-item'+(s==='done'?' done':'')+(s==='noinfo'?' noinfo':'')+(i===idx?' cur':'');
     const bits=[r.pos&&('POS:'+r.pos),r.size&&(r.size+'규모'),r.busy].filter(Boolean).join(' · ');
-    const meta=(s==='done')?bits:(s==='noinfo'?'정보없음 처리됨':(r.address||'—'));
+    let meta=(s==='done')?bits:(s==='noinfo'?'정보없음 처리됨':(r.address||'—'));
+    if(r.visitedAt) meta=(meta&&meta!=='—'?meta+' · ':'')+'🕘 '+r.visitedAt;
     const label=(s==='done')?'완료':(s==='noinfo'?'정보없음':'미입력');
     el.innerHTML='<span class="no">'+(i+1)+'</span>'
       +'<span class="body"><span class="nm">'+esc(r.store||'(가게명 없음)')+'</span>'
@@ -948,7 +958,7 @@ function removeStore(i){
 function addStore(){
   const nm=$('newStore').value.trim(), ad=$('newAddr').value.trim();
   if(!nm && !ad){ alert('가게명 또는 주소를 입력하세요.'); return; }
-  records.push({store:nm,address:ad,biz:'',hours:'',precheck:'',move:'',day:'',seq:'',noInfo:false,
+  records.push({store:nm,address:ad,biz:'',hours:'',precheck:'',move:'',day:'',seq:'',noInfo:false,visitedAt:'',
     pos:'',posOther:'',order:'',loyalty:'',loyaltyOther:'',size:'',busy:'',sns:'',snsNote:'',receipt:'',memo:''});
   $('newStore').value=''; $('newAddr').value=''; $('addForm').style.display='none';
   saveAll(); renderHist(); render();
@@ -973,10 +983,11 @@ function exportXLSX(){
     'SNS':r.sns==='있음'?('있음: '+(r.snsNote||'')):r.sns,
     '영수증':r.receipt?'첨부됨':'',
     '메모':r.memo,
-    '입력상태':(statusOf(r)==='done'?'완료':(statusOf(r)==='noinfo'?'정보없음':'미입력'))
+    '입력상태':(statusOf(r)==='done'?'완료':(statusOf(r)==='noinfo'?'정보없음':'미입력')),
+    '방문시각':r.visitedAt||''
   }));
   const ws=XLSX.utils.json_to_sheet(rows);
-  ws['!cols']=[{wch:6},{wch:20},{wch:34},{wch:16},{wch:16},{wch:18},{wch:8},{wch:9},{wch:20},{wch:9},{wch:30},{wch:9}];
+  ws['!cols']=[{wch:6},{wch:20},{wch:34},{wch:16},{wch:16},{wch:18},{wch:8},{wch:9},{wch:20},{wch:9},{wch:30},{wch:9},{wch:17}];
   const wb=XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb,ws,'방문결과');
   const today=new Date().toISOString().slice(0,10);
